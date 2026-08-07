@@ -1,0 +1,43 @@
+name: Build and Release EXE
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'リリースするバージョン (例: 1.4)'
+        required: true
+        default: '1.4'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas matplotlib bs4 requests selenium pillow pyinstaller pyxlsb
+
+    - name: Build EXE with PyInstaller
+      run: |
+        pyinstaller --noconsole --onefile --name Data_Analyzer --hidden-import selenium.webdriver.common.bidi.cdp --hidden-import selenium.webdriver.common.devtools --hidden-import selenium.webdriver.edge.webdriver --hidden-import selenium.webdriver.remote.webdriver Data_Analyzer.pyw
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: V${{ github.event.inputs.version }}
+        name: バージョン ${{ github.event.inputs.version }}
+        files: dist/Data_Analyzer.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
